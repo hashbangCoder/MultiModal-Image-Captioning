@@ -7,7 +7,7 @@ local loadcaffe = require('loadcaffe')
 -- Load pretrained 16-layer VGG model and freeze layers
 function models.load_vgg(backend)
 	--local model =  loadcaffe.load('VGG/VGG_ILSVRC_19_layers_deploy.prototxt','VGG/vgg_normalised.caffemodel',backend)
-	local base_path = '../RealTimeNeuralStyle/VGG/'
+	local base_path = 'VGG/'
 	local model =  loadcaffe.load(paths.concat(base_path,'VGG_ILSVRC_16_layers_deploy.prototxt'),paths.concat(base_path,'VGG_ILSVRC_16_layers.caffemodel'),backend)
 	for i=38,#model do
 		model:remove()

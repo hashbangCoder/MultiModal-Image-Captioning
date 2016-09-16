@@ -14,8 +14,8 @@ cmd:text()
 cmd:text('Options : ')
 
 cmd:option('-test','test_image.jpg','Test Image path')
-cmd:option('-im_dir','~/RealTimeNeuralStyle/Data/train2014/','Path to train images')
-cmd:option('-caption_dir','~/RealTimeNeuralStyle/Data/annotations/captions_train2014.json','Path to Train Captions')
+cmd:option('-im_dir','COCOData/Data/train2014/','Path to train images')
+cmd:option('-caption_dir','COCOData/Data/annotations/captions_train2014.json','Path to Train Captions')
 cmd:option('-size',256,'Size of output')
 
 cmd:option('-iter',160000,'Number of iteration to train')

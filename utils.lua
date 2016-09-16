@@ -50,8 +50,8 @@ end
 
 
 function DataLoader:__init(epcohs,batch_size)
-	local captions = '../RealTimeNeuralStyle/Data/annotations/captions_train2014_pp.json'
-	local im_dir = '../RealTimeNeuralStyle/Data/train2014'
+	local captions = 'COCOData/Data/annotations/captions_train2014_pp.json'
+	local im_dir = 'COCOData/Data/train2014'
 	-- Cap-data is a map from image_id to table of captions
 	-- image_data is a map from image_id to filename
 	local _file = io.open(captions,'r')
@@ -73,8 +73,8 @@ function DataLoader:__init(epcohs,batch_size)
 		if image_data[iData[i].id] then error('Duplicate IDs found') end
 		image_data[iData[i].id] = iData[i].file_name
 	end
-	self.vocab_file = '../RealTimeNeuralStyle/Data/annotations/captions_train2014_dict.json'
-	self.dir_path = '../RealTimeNeuralStyle/Data/train2014/'
+	self.vocab_file = 'COCOData/Data/annotations/captions_train2014_dict.json'
+	self.dir_path = 'COCOData/Data/train2014/'
 	self.image_data = image_data
 	self.cap_data = cap_data
 	self.vocab_size = data_files.vocab_size
