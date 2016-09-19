@@ -2,11 +2,10 @@
 --Implements other utils for image handling
 
 local utils = {}
-require('pl')
 local cjson = require('cjson')
 local DataLoader = torch.class('DataLoader')
 local image = require('image')
-
+local tablex = require('pl.tablex')
 function utils.pp(im)
 	-- Take in RGB and subtract means
 	-- If you're wondering what these floats are for, like I did, they're the mean pixel (Blue-Green-Red) for the pretrained VGG net in order to zero-center the input image.
@@ -77,7 +76,7 @@ function DataLoader:__init(epcohs,batch_size)
 	self.dir_path = 'COCOData/Data/train2014/'
 	self.image_data = image_data
 	self.cap_data = cap_data
-	self.vocab_size = data_files.vocab_size
+	self.vocab_size = data_files.vocab_size + 2	--start and end tokens
 	self.epochs = 5--epochs
 	self.batch_size = 1-- batch_size
 	self.iterInd = 1
@@ -89,14 +88,19 @@ function DataLoader:get_vocab()
 	local _file =io.open(self.vocab_file,'r')
 	local vocab = {}
 	local _vocab = cjson.decode(_file:read("*a"))
+	local cnt = 1
 	for i,j in pairs(_vocab) do
-		table.insert(vocab,i)
-		table.insert(vocab,j)
+		vocab[j] = cnt
+		cnt = cnt + 1
+		vocab[i] = cnt 
+		cnt = cnt+1
 	end
-	_vocab=nil
-	collectgarbage()
+	-- Add start and end tokens
+	vocab['<go>']=cnt
+	vocab['<end>'] = cnt+1
+	_vocab = nil
+	collectgarbage();
 	return vocab
-	--self.vocab = vocab
 end
 
 function DataLoader:getFullData()
@@ -119,15 +123,16 @@ end
 
 function DataLoader:getBatch()
 	collectgarbage()
-	local batch = {}
+	local batchIm, batchCap = {},{}
 	if self.iterInd + self.batch_size > self.shuffle:nElement() then
 		for i=self.iterInd,self.shuffle:nElement()-1 do
 			local image_id = self.fullData[self.shuffle[self.iterInd]][1]
 			local caption =  self.fullData[self.shuffle[self.iterInd]][2]
 			local im = image.loadJPG(paths.concat(self.dir_path,self.image_data[image_id]))
-			im = utils.pp(utils.scale_pp(im,256))
+			im = utils.pp(utils.scale_pp(im,224))
 			--local batch_sample = {im,caption}	
-			table.insert(batch,{im,caption})
+			table.insert(batchIm,im)
+			table.insert(batchCap,caption:lower():split(' '))
 		end
 		if self.epochs > 0 then
 			self:shuffleInds()
@@ -141,15 +146,15 @@ function DataLoader:getBatch()
 			local image_id = self.fullData[self.shuffle[self.iterInd]][1]
 			local caption = self.fullData[self.shuffle[self.iterInd]][2]
 			local im = image.loadJPG(paths.concat(self.dir_path,self.image_data[image_id]))
-			im = utils.pp(utils.scale_pp(im,256))
+			im = utils.pp(utils.scale_pp(im,224))
+			im = im:view(1,3,224,224)
 			--local batch_sample = {self.image_data[image_id],caption}	
 			self.iterInd = self.iterInd + self.batch_size
-			table.insert(batch,{im,caption})
+			table.insert(batchIm,im)
+			table.insert(batchCap,caption:lower():split(' '))
 		end
 	end
-	return batch
-
-
+	return batchCap,batchIm
 end
 
 function DataLoader:shuffleInds()
@@ -169,5 +174,50 @@ function DataLoader:resetIterInd()
 	self.iterInd = 1
 end
 
+-- Input is table minibatch of integers
+function utils.padZero(inputTable)
+	local maxLen = 0
+	for _,j in ipairs(inputTable) do
+		if #j >= maxLen then
+			maxLen = #j
+		end
+	end
+	for _,j in ipairs(inputTable) do
+		while #j < maxLen do
+			table.insert(j,0)
+		end
+	end
+	return inputTable
+end
+
+function utils.appendTokens(inputTable)
+	for _,j in pairs(inputTable) do
+		j[#j + 1] = '<end>'
+		table.insert(j,1,'<go>')
+	end
+	return inputTable
+end
+
+--input is a table of integers
+function utils.getTarget(input)
+	target = tablex.copy(input)
+	table.remove(target,1)
+	table.remove(input,#input)
+	return input,target
+end
+
+function utils.captionToInts(caption,vocab)
+	local captionInteger = {}
+	for i=1,#caption do
+		local index = vocab[caption[i]]
+		if index ~= nil then
+			table.insert(captionInteger,index)
+		else 
+			print(caption[i],vocab[caption[i]])
+			error('Unknown word')
+		end
+	end
+	return captionInteger
+end
 
 return utils
