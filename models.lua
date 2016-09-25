@@ -19,36 +19,10 @@ function models.load_vgg(backend)
 	return model
 end
 
---function models.rnn_model(vocabSize,embedLen)
---	local fastlstm = nn.FastLSTM(embedLen,1024)
---	fastlstm:maskZero(1)	
---	
---	local lookup = nn.LookupTableMaskZero(vocabSize,embedLen)
---	--local rnn = nn.Sequential():add(lookup):add(nn.Dropout(0.5)):add(nn.Transpose({1,2})):add(fastlstm)
---	--						   :add(nn.MaskZero(nn.Linear(1024,2048),1)):add(nn.ReLU(true))
---	local rnn = nn.Sequential():add(lookup):add(nn.Dropout(0.5)):add(fastlstm)
---							   :add(nn.MaskZero(nn.Linear(1024,2048),1)):add(nn.ReLU(true))
---	
---	local rnn_cnn = nn.ParallelTable()
---	-- Add the RNN to parallel table
---	rnn_cnn:add(rnn)
---	--Add the Visual input to parallel table after embedding in multimodal space. Use fc6 layer
---	rnn_cnn:add(nn.Sequential():add(nn.Linear(4096,2048)):add(nn.ReLU(true)))
---	--Share weights and grads. use dpnn extension to save memory as compared to just share
---	local shared_lin = nn.Linear(vocabSize,embedLen)
---	shared_lin.weight:set(lookup.weight)
---	shared_lin.gradWeight:set(lookup.gradWeight)
---	local model = nn.Sequential():add(rnn_cnn):add(nn.CAddTable()):add(nn.Dropout(0.25)):add(nn.MaskZero(nn.Linear(2048,embedLen),1)):add(nn.MaskZero(shared_lin,1))
---								
---	collectgarbage()
---	collectgarbage()
---	return nn.Sequencer(model)
---end
-
 function models.rnn_model(vocabSize,embedLen)
 	local lstm = nn.SeqLSTM(embedLen,1024)
 	lstm:maskZero(1)	
-	
+	lstm.batchfirst=true
 	local lookup = nn.LookupTableMaskZero(vocabSize,embedLen)
 	--local rnn = nn.Sequential():add(lookup):add(nn.Dropout(0.5)):add(nn.Transpose({1,2})):add(fastlstm)
 	--						   :add(nn.MaskZero(nn.Linear(1024,2048),1)):add(nn.ReLU(true))
@@ -66,14 +40,17 @@ function models.rnn_model(vocabSize,embedLen)
 	shared_lin.bias = false
 	shared_lin.weight:set(lookup.weight);
 	shared_lin.gradWeight:set(lookup.gradWeight);
+	--local model = nn.Sequential():add(rnn_cnn):add(nn.CAddTable()):add(nn.Sequencer(nn.Sequential():add(nn.Dropout(0.25))
+	--															  					:add(nn.MaskZero(nn.Linear(2048,embedLen),1))
+	--															  					:add(nn.MaskZero(shared_lin,1))))
 	local model = nn.Sequential():add(rnn_cnn):add(nn.CAddTable()):add(nn.Sequencer(nn.Sequential():add(nn.Dropout(0.25))
-																  					:add(nn.MaskZero(nn.Linear(2048,embedLen),1))
-																  					:add(nn.MaskZero(shared_lin,1))))
-								
+																  					:add(nn.Linear(2048,embedLen))
+																  					:add(shared_lin)))
+
+
 	collectgarbage()
 	collectgarbage()
+	print( shared_lin.weight:size(),lookup.weight:size())
 	return model
 end
-
-
 return models

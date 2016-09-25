@@ -16,11 +16,15 @@ for ind,item in enumerate(data['annotations']):
 full_str = ' '.join(full_str)
 vocab = list(set(wt(full_str.lower())))
 data['vocab_size'] = len(vocab)
-_iter = iter(vocab)
-b = dict(izip(_iter, _iter))
+b = {}
+#reverse_b = {}
+for ind,item in enumerate(vocab):
+    b[item] = ind+1
+    #reverse_b[ind] = item
 
 with open('../RealTimeNeuralStyle/Data/annotations/captions_train2014_pp.json','w') as f:
     json.dump(data,f)
-
 with open('../RealTimeNeuralStyle/Data/annotations/captions_train2014_dict.json','w') as f:
     json.dump(b,f)
+#with open('../RealTimeNeuralStyle/Data/annotations/captions_train2014_rdict.json','w') as f:
+    #json.dump(reverse_b,f)

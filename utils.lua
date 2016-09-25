@@ -89,18 +89,18 @@ function DataLoader:get_vocab()
 	local vocab = {}
 	local _vocab = cjson.decode(_file:read("*a"))
 	local cnt = 1
-	for i,j in pairs(_vocab) do
-		vocab[j] = cnt
-		cnt = cnt + 1
-		vocab[i] = cnt 
-		cnt = cnt+1
-	end
-	-- Add start and end tokens
-	vocab['<go>']=cnt
-	vocab['<end>'] = cnt+1
-	_vocab = nil
-	collectgarbage();
-	return vocab
+	--for i,j in pairs(_vocab) do
+	--	vocab[j] = cnt
+	--	cnt = cnt + 1
+	--	vocab[i] = cnt 
+	--	cnt = cnt+1
+	--end
+	---- Add start and end tokens
+	_vocab['<go>']=tablex.size(_vocab) + 1
+	_vocab['<end>'] = tablex.size(_vocab) + 1
+	--_vocab = nil
+	--collectgarbage();
+	return _vocab
 end
 
 function DataLoader:getFullData()
@@ -187,7 +187,7 @@ function utils.padZero(inputTable)
 			table.insert(j,0)
 		end
 	end
-	return inputTable
+	return inputTable,maxLen
 end
 
 function utils.appendTokens(inputTable)
