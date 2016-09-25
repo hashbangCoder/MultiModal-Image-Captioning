@@ -48,7 +48,7 @@ end
 
 
 
-function DataLoader:__init(epcohs,batch_size)
+function DataLoader:__init(epochs,batch_size)
 	local captions = 'COCOData/Data/annotations/captions_train2014_pp.json'
 	local im_dir = 'COCOData/Data/train2014'
 	-- Cap-data is a map from image_id to table of captions
@@ -77,9 +77,12 @@ function DataLoader:__init(epcohs,batch_size)
 	self.image_data = image_data
 	self.cap_data = cap_data
 	self.vocab_size = data_files.vocab_size + 2	--start and end tokens
-	self.epochs = 5--epochs
-	self.batch_size = 1-- batch_size
+	self.maxEpochs = epochs
+	self.epochs = epochs
+	self.flag = false
+	self.batch_size = batch_size
 	self.iterInd = 1
+	self.global_iter = 1
 	self:getFullData()
 	self:shuffleInds()
 end
@@ -123,23 +126,26 @@ end
 
 function DataLoader:getBatch()
 	collectgarbage()
+	if self.flag == true then
+		error('Maximum Epoch Limit reached')
+		return 
+	end
 	local batchIm, batchCap = {},{}
-	if self.iterInd + self.batch_size > self.shuffle:nElement() then
-		for i=self.iterInd,self.shuffle:nElement()-1 do
+	if self.iterInd + self.batch_size > self.totalSamples then
+		for i=self.iterInd,self.totalSamples-1 do
 			local image_id = self.fullData[self.shuffle[self.iterInd]][1]
 			local caption =  self.fullData[self.shuffle[self.iterInd]][2]
 			local im = image.loadJPG(paths.concat(self.dir_path,self.image_data[image_id]))
 			im = utils.pp(utils.scale_pp(im,224))
-			--local batch_sample = {im,caption}	
 			table.insert(batchIm,im)
 			table.insert(batchCap,caption:lower():split(' '))
 		end
+		self.iterInd = self.totalSamples
 		if self.epochs > 0 then
 			self:shuffleInds()
 			self.epochs = self.epochs - 1
+			if self.epochs ==0 then self.flag = true end
 			self.iterInd = 1
-		else
-			print('End of epochs')
 		end
 	else
 		for i=self.iterInd,self.iterInd+self.batch_size-1 do
@@ -148,32 +154,24 @@ function DataLoader:getBatch()
 			local im = image.loadJPG(paths.concat(self.dir_path,self.image_data[image_id]))
 			im = utils.pp(utils.scale_pp(im,224))
 			im = im:view(1,3,224,224)
-			--local batch_sample = {self.image_data[image_id],caption}	
-			self.iterInd = self.iterInd + self.batch_size
 			table.insert(batchIm,im)
 			table.insert(batchCap,caption:lower():split(' '))
 		end
+		self.iterInd = self.iterInd + self.batch_size
 	end
 	return batchCap,batchIm
 end
 
 function DataLoader:shuffleInds()
 	self.shuffle = torch.randperm(#self.fullData)
-
+	self.totalSamples = self.shuffle:nElement()
 end
 
-function DataLoader:getEpochs()
-	return self.epochs
+function DataLoader:getGlobalIter()
+	return ((self.maxEpochs - self.epochs)*self.totalSamples + self.iterInd)
 end
 
-function DataLoader:getIterInd()
-	return self.iterInd
-end
-
-function DataLoader:resetIterInd()
-	self.iterInd = 1
-end
-
+------------------- Other Utility Functions -----------------
 -- Input is table minibatch of integers
 function utils.padZero(inputTable)
 	local maxLen = 0

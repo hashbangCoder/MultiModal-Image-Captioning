@@ -74,10 +74,11 @@ for i=1,100000 do
 	rnn:backward(batched_cap_ints,gradOut)
 	rnn:updateParameters(0.00005)
 	if i%200 == 0 then
-		print('\nIter: ',i,'Error:',err)
+		print('\n')
+		print('Iter: ',i,'Error:',err)
 		eval.model_eval(rnn,vocab,reverse_vocab,vis_out[1])
 		print('Ground Truth : ',table.concat(batchCap[1],' '))
-		print('Ground Truth(2): ',table.concat(batchCap[2],' '))
+		--print('Ground Truth(2): ',table.concat(batchCap[2],' '))
 		rnn:training()
 		rnn.modules[1].modules[2].modules[1].nfeatures = maxLen
 	end

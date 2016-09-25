@@ -50,7 +50,7 @@ function models.rnn_model(vocabSize,embedLen)
 
 	collectgarbage()
 	collectgarbage()
-	print( shared_lin.weight:size(),lookup.weight:size())
+	--print( shared_lin.weight:size(),lookup.weight:size())
 	return model
 end
 return models
